@@ -240,7 +240,7 @@ import type {
 
 - [TweetStream](https://tweetstream.io) - Get your API key
 - [Documentation](https://tweetstream.io/docs)
-- [Python SDK](https://github.com/tenz/tweetstream-py-sdk)
+- [Python SDK](https://github.com/tenz-app/tweetstream-py-sdk)
 
 ## License
 
