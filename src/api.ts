@@ -3,11 +3,7 @@
  * Historical data and account management
  */
 
-import type {
-  HistoryQuery,
-  HistoryResponse,
-  HandleResponse,
-} from "./types.js";
+import type { HistoryQuery, HistoryResponse, HandleResponse } from "./types.js";
 
 const DEFAULT_API_URL = "https://tweetstream.io";
 

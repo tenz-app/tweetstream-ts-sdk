@@ -168,7 +168,10 @@ export type TweetContentMessage = EnvelopeV1<TweetContent> & { t: "tweet"; op: "
 export type TweetMetaMessage = EnvelopeV1<TweetMeta> & { t: "tweet"; op: "meta" };
 export type TweetUpdateMessage = EnvelopeV1<TweetUpdate> & { t: "tweet"; op: "update" };
 export type TweetDeleteMessage = EnvelopeV1<TweetDelete> & { t: "tweet"; op: "delete" };
-export type ProfileUpdateMessage = EnvelopeV1<ProfileUpdateEvent> & { t: "account"; op: "profile_update" };
+export type ProfileUpdateMessage = EnvelopeV1<ProfileUpdateEvent> & {
+  t: "account";
+  op: "profile_update";
+};
 export type FollowMessage = EnvelopeV1<FollowEvent> & { t: "account"; op: "follow" };
 
 export type TweetStreamMessage =

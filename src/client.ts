@@ -94,27 +94,27 @@ export class TweetStreamClient {
         "tweetstream.v1",
       ]);
 
-      this.ws.onopen = () => {
+      this.ws.addEventListener("open", () => {
         this.isConnecting = false;
         this.reconnectAttempts = 0;
         this.emit("connected");
-      };
+      });
 
-      this.ws.onclose = (event) => {
+      this.ws.addEventListener("close", (event) => {
         this.isConnecting = false;
         this.ws = null;
         this.emit("disconnected", event.code, event.reason || "Connection closed");
         this.handleReconnect(event.code);
-      };
+      });
 
-      this.ws.onerror = () => {
+      this.ws.addEventListener("error", () => {
         this.isConnecting = false;
         this.emit("error", new Error("WebSocket connection error"));
-      };
+      });
 
-      this.ws.onmessage = (event) => {
+      this.ws.addEventListener("message", (event) => {
         this.handleMessage(event.data);
-      };
+      });
     } catch (error) {
       this.isConnecting = false;
       this.emit("error", error instanceof Error ? error : new Error(String(error)));
