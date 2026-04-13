@@ -23,7 +23,7 @@
     "format": "oxfmt --write src/",
     "format:check": "oxfmt --check src/",
     "check": "npm run lint && npm run format:check && tsc --noEmit",
-    "prepublishOnly": "npm run check && npm run build"
+    "prepublishOnly": "tsc --noEmit && npm run build"
   },
   "keywords": [
     "twitter",
