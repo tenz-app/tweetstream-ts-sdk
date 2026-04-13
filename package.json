@@ -1,6 +1,6 @@
 {
   "name": "tweetstream-sdk",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Official TypeScript SDK for TweetStream - Real-time Twitter/X and Truth Social streaming API",
   "type": "module",
   "main": "./dist/index.js",
