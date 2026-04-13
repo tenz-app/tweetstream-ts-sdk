@@ -182,9 +182,9 @@ export class TweetStreamClient {
     }
   }
 
-  private handleMessage(data: string | Buffer | ArrayBuffer): void {
+  private handleMessage(data: string | ArrayBuffer): void {
     try {
-      const text = typeof data === "string" ? data : new TextDecoder().decode(data as ArrayBuffer);
+      const text = typeof data === "string" ? data : new TextDecoder().decode(data);
       const message = JSON.parse(text) as TweetStreamMessage;
 
       // Emit raw message
