@@ -16,6 +16,8 @@ Official TypeScript/JavaScript SDK for [TweetStream](https://tweetstream.io) - t
 
 Perfect for trading bots, Discord alerts, sentiment analysis, and real-time portfolio tracking.
 
+Works in browsers, Bun, and Node.js 18+.
+
 ## Installation
 
 ```bash
@@ -63,6 +65,7 @@ import { TweetStreamApi } from "tweetstream-sdk";
 const api = new TweetStreamApi({ apiKey: "your-api-key" });
 
 // Fetch historical tweets for backtesting
+// Requires an active Elite or Enterprise subscription
 const history = await api.getHistory({
   handles: ["elonmusk", "VitalikButerin"],
   limit: 100,
@@ -133,6 +136,8 @@ const tweets = await api.getHistory({
   limit: 500,
 });
 ```
+
+`getHistory(...)` is currently available for users on an active Elite or Enterprise plan.
 
 ## Examples
 

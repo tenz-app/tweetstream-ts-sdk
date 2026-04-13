@@ -18,6 +18,7 @@ const DEFAULT_WS_URL = "wss://ws.tweetstream.io/ws";
 const DEFAULT_RECONNECT_DELAY_MS = 1000;
 const DEFAULT_MAX_RECONNECT_DELAY_MS = 30000;
 const DEFAULT_MAX_RECONNECT_ATTEMPTS = Infinity;
+const OPEN_READY_STATE = 1;
 
 // Close codes that should not trigger reconnection
 const NO_RECONNECT_CODES = new Set([
@@ -31,6 +32,10 @@ const NO_RECONNECT_CODES = new Set([
 const IMMEDIATE_RECONNECT_CODES = new Set([
   1012, // Server shutting down
 ]);
+
+type WebSocketConstructor = {
+  new (url: string | URL, protocols?: string | string[]): WebSocket;
+};
 
 type EventCallback<K extends keyof TweetStreamEvents> = TweetStreamEvents[K];
 type EventListeners = {
@@ -77,7 +82,7 @@ export class TweetStreamClient {
    * Connect to the TweetStream WebSocket
    */
   connect(): void {
-    if (this.ws?.readyState === WebSocket.OPEN || this.isConnecting) {
+    if (this.ws?.readyState === OPEN_READY_STATE || this.isConnecting) {
       return;
     }
 
@@ -85,39 +90,7 @@ export class TweetStreamClient {
     this.shouldReconnect = true;
     this.clearReconnectTimeout();
 
-    try {
-      // Use subprotocol for auth (works in browsers and Node.js)
-      this.ws = new WebSocket(this.options.baseUrl, [
-        `tweetstream.auth.token.${this.options.apiKey}`,
-        "tweetstream.v1",
-      ]);
-
-      this.ws.addEventListener("open", () => {
-        this.isConnecting = false;
-        this.reconnectAttempts = 0;
-        this.emit("connected");
-      });
-
-      this.ws.addEventListener("close", (event) => {
-        this.isConnecting = false;
-        this.ws = null;
-        this.emit("disconnected", event.code, event.reason || "Connection closed");
-        this.handleReconnect(event.code);
-      });
-
-      this.ws.addEventListener("error", () => {
-        this.isConnecting = false;
-        this.emit("error", new Error("WebSocket connection error"));
-      });
-
-      this.ws.addEventListener("message", (event) => {
-        this.handleMessage(event.data);
-      });
-    } catch (error) {
-      this.isConnecting = false;
-      this.emit("error", error instanceof Error ? error : new Error(String(error)));
-      this.handleReconnect(1006);
-    }
+    void this.openConnection();
   }
 
   /**
@@ -137,7 +110,7 @@ export class TweetStreamClient {
    * Check if the client is connected
    */
   get connected(): boolean {
-    return this.ws?.readyState === WebSocket.OPEN;
+    return this.ws?.readyState === OPEN_READY_STATE;
   }
 
   /**
@@ -178,6 +151,67 @@ export class TweetStreamClient {
         console.error(`Error in ${event} listener:`, error);
       }
     }
+  }
+
+  private async openConnection(): Promise<void> {
+    try {
+      const WebSocketImpl = await this.loadWebSocketImplementation();
+      if (!this.shouldReconnect) {
+        this.isConnecting = false;
+        return;
+      }
+
+      // Use subprotocol for auth (works in browsers, Bun, and Node.js via ws fallback).
+      const ws = new WebSocketImpl(this.options.baseUrl, [
+        `tweetstream.auth.token.${this.options.apiKey}`,
+        "tweetstream.v1",
+      ]);
+
+      this.ws = ws;
+
+      ws.addEventListener("open", () => {
+        this.isConnecting = false;
+        this.reconnectAttempts = 0;
+        this.emit("connected");
+      });
+
+      ws.addEventListener("close", (event) => {
+        this.isConnecting = false;
+        this.ws = null;
+        this.emit("disconnected", event.code, event.reason || "Connection closed");
+        this.handleReconnect(event.code);
+      });
+
+      ws.addEventListener("error", () => {
+        this.isConnecting = false;
+        this.emit("error", new Error("WebSocket connection error"));
+      });
+
+      ws.addEventListener("message", (event) => {
+        this.handleMessage(event.data);
+      });
+    } catch (error) {
+      this.isConnecting = false;
+      this.emit("error", error instanceof Error ? error : new Error(String(error)));
+      this.handleReconnect(1006);
+    }
+  }
+
+  private async loadWebSocketImplementation(): Promise<WebSocketConstructor> {
+    if (typeof globalThis.WebSocket === "function") {
+      return globalThis.WebSocket as WebSocketConstructor;
+    }
+
+    const wsModule = await import("ws");
+    const WebSocketImpl = (wsModule.WebSocket ??
+      wsModule.default ??
+      wsModule) as unknown as WebSocketConstructor;
+
+    if (typeof WebSocketImpl !== "function") {
+      throw new Error("Failed to load WebSocket implementation");
+    }
+
+    return WebSocketImpl;
   }
 
   private handleMessage(data: string | ArrayBuffer): void {
