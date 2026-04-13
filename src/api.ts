@@ -71,6 +71,7 @@ export class TweetStreamApi {
       method: "GET",
       headers: {
         Authorization: `Bearer ${this.apiKey}`,
+        "User-Agent": "TweetStream-SDK/1.0 TypeScript",
       },
     });
 
@@ -100,6 +101,7 @@ export class TweetStreamApi {
       headers: {
         Authorization: `Bearer ${this.apiKey}`,
         "Content-Type": "application/json",
+        "User-Agent": "TweetStream-SDK/1.0 TypeScript",
       },
       body: JSON.stringify({ accounts }),
     });
@@ -130,6 +132,7 @@ export class TweetStreamApi {
       headers: {
         Authorization: `Bearer ${this.apiKey}`,
         "Content-Type": "application/json",
+        "User-Agent": "TweetStream-SDK/1.0 TypeScript",
       },
       body: JSON.stringify({ accounts }),
     });
