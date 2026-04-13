@@ -1,0 +1,54 @@
+{
+  "name": "tweetstream-sdk",
+  "version": "1.0.0",
+  "description": "Official TypeScript SDK for TweetStream - Real-time Twitter/X and Truth Social streaming API",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "twitter",
+    "x",
+    "truth-social",
+    "streaming",
+    "websocket",
+    "real-time",
+    "api",
+    "sdk",
+    "crypto",
+    "trading",
+    "tweets",
+    "social-media"
+  ],
+  "author": "TweetStream",
+  "license": "MIT",
+  "homepage": "https://tweetstream.io",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tenz/tweetstream-ts-sdk.git"
+  },
+  "bugs": {
+    "url": "https://github.com/tenz/tweetstream-ts-sdk/issues"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  }
+}
