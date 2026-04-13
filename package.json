@@ -19,7 +19,11 @@
   ],
   "scripts": {
     "build": "tsc",
-    "prepublishOnly": "npm run build"
+    "lint": "oxlint src/",
+    "format": "oxfmt --write src/",
+    "format:check": "oxfmt --check src/",
+    "check": "npm run lint && npm run format:check && tsc --noEmit",
+    "prepublishOnly": "npm run check && npm run build"
   },
   "keywords": [
     "twitter",

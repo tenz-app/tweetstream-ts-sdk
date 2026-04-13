@@ -1,0 +1,7 @@
+{
+  "indentWidth": 2,
+  "organizeImports": false,
+  "quoteMark": "double",
+  "semicolon": true,
+  "trailingComma": true
+}
