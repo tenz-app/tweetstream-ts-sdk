@@ -1,247 +1,252 @@
 # TweetStream SDK for TypeScript
 
-Official TypeScript SDK for [TweetStream](https://tweetstream.io) - Real-time Twitter/X and Truth Social streaming API.
+Official TypeScript/JavaScript SDK for [TweetStream](https://tweetstream.io) - the real-time Twitter WebSocket API built for crypto traders.
 
 [![npm version](https://badge.fury.io/js/tweetstream-sdk.svg)](https://www.npmjs.com/package/tweetstream-sdk)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## Features
+## Why TweetStream?
 
-- **Real-time streaming** via WebSocket with automatic reconnection
-- **Full type safety** with TypeScript
-- **Tweet content** including quotes, replies, and retweets
-- **Metadata detection** for tokens, CEX markets, and prediction markets
-- **Profile updates** and follow notifications
-- **Historical data** via REST API
-- **Account management** - add/remove tracked handles
+- **~200ms latency** - Get tweets before they hit your feed
+- **1M+ signals daily** - Battle-tested infrastructure
+- **Token detection** - Automatic $ticker and contract address extraction with live prices
+- **OCR built-in** - Extract text from screenshot tweets
+- **CEX & prediction markets** - Detect Binance, Bybit, Polymarket mentions
+- **No infrastructure** - Just connect and stream
+
+Perfect for trading bots, Discord alerts, sentiment analysis, and real-time portfolio tracking.
 
 ## Installation
 
 ```bash
 npm install tweetstream-sdk
+# or
+yarn add tweetstream-sdk
+# or
+pnpm add tweetstream-sdk
 ```
 
 ## Quick Start
 
-### Real-time Streaming
+### Real-time Tweet Streaming
 
 ```typescript
 import { TweetStreamClient } from "tweetstream-sdk";
 
 const client = new TweetStreamClient({
-  apiKey: "your-api-key",
+  apiKey: "your-api-key", // Get one at https://tweetstream.io
 });
 
-// Listen for tweets
+// Stream tweets in real-time
 client.on("tweet", (tweet) => {
   console.log(`@${tweet.author.handle}: ${tweet.text}`);
-  
-  // Check for quoted tweets
-  if (tweet.ref?.type === "quote") {
-    console.log(`  Quoting: ${tweet.ref.text}`);
-  }
 });
 
-// Listen for detected tokens
+// Detect tokens mentioned in tweets
 client.on("tweetMeta", (meta) => {
   if (meta.detected?.tokens) {
     for (const token of meta.detected.tokens) {
-      console.log(`Token detected: ${token.symbol} on ${token.chain}`);
+      console.log(`Token: ${token.symbol} | Chain: ${token.chain} | Price: $${token.priceUsd}`);
     }
   }
 });
 
-// Listen for profile updates
-client.on("profileUpdate", (event) => {
-  console.log(`@${event.actor.handle} updated their profile`);
-  if (event.changes.bio) {
-    console.log(`  New bio: ${event.changes.bio}`);
-  }
-});
-
-// Listen for follows
-client.on("follow", (event) => {
-  console.log(`@${event.actor.handle} followed @${event.target.handle}`);
-});
-
-// Connection events
-client.on("connected", () => console.log("Connected!"));
-client.on("disconnected", (code, reason) => console.log(`Disconnected: ${reason}`));
-client.on("reconnecting", (attempt, delay) => console.log(`Reconnecting in ${delay}ms...`));
-
-// Connect
+client.on("connected", () => console.log("Streaming tweets..."));
 client.connect();
 ```
 
-### REST API
+### REST API for Historical Data
 
 ```typescript
 import { TweetStreamApi } from "tweetstream-sdk";
 
-const api = new TweetStreamApi({
-  apiKey: "your-api-key",
-});
+const api = new TweetStreamApi({ apiKey: "your-api-key" });
 
-// Get historical tweets
+// Fetch historical tweets for backtesting
 const history = await api.getHistory({
   handles: ["elonmusk", "VitalikButerin"],
   limit: 100,
   startDate: "2024-01-01T00:00:00Z",
 });
 
-for (const tweet of history.data) {
-  console.log(`${tweet.twitterHandle}: ${tweet.body}`);
-}
+// Manage tracked accounts
+await api.addAccounts(["whale_alert", "lookonchain"]);
+await api.removeAccounts("old_account");
+```
 
+## Features
+
+### Real-time WebSocket Streaming
+
+- **Tweet content** - Full tweet with author, media, timestamps
+- **Quotes, replies, retweets** - Complete reference chain
+- **Truth Social** - Stream from both Twitter/X and Truth Social
+- **Profile updates** - Name, bio, avatar changes
+- **Follow notifications** - Know when tracked accounts follow others
+- **Auto-reconnect** - Built-in exponential backoff
+
+### Metadata Detection
+
+Every tweet is enriched with:
+
+```typescript
+client.on("tweetMeta", (meta) => {
+  // Crypto tokens with live prices
+  meta.detected?.tokens?.forEach((token) => {
+    console.log(`${token.symbol} on ${token.chain}: $${token.priceUsd}`);
+    console.log(`Contract: ${token.contract}`);
+  });
+
+  // CEX trading pairs
+  meta.detected?.cex?.forEach((market) => {
+    console.log(`${market.exchange}: ${market.symbol} @ $${market.priceUsd}`);
+  });
+
+  // Prediction markets (Polymarket, Kalshi)
+  meta.detected?.prediction?.forEach((market) => {
+    console.log(`${market.exchange}: ${market.title}`);
+  });
+
+  // OCR from images
+  if (meta.ocr) {
+    console.log(`Image text: ${meta.ocr.text}`);
+  }
+});
+```
+
+### Account Management API
+
+```typescript
 // Add accounts to track
-const added = await api.addAccounts(["newhandle1", "newhandle2"]);
-console.log(`Added ${added.summary.succeeded} accounts`);
+const result = await api.addAccounts(["trader1", "trader2", "trader3"]);
+console.log(`Added ${result.summary.succeeded} of ${result.summary.total}`);
 
 // Remove accounts
-const removed = await api.removeAccounts("oldhandle");
-console.log(`Removed ${removed.summary.succeeded} accounts`);
+await api.removeAccounts("old_account");
+
+// Get historical data with filters
+const tweets = await api.getHistory({
+  handles: ["specific_trader"],
+  type: "TWEET", // or "PROFILE", "FOLLOW"
+  startDate: "2024-01-01T00:00:00Z",
+  endDate: "2024-01-31T23:59:59Z",
+  limit: 500,
+});
 ```
 
 ## Examples
 
-### Token Alert Bot
+### Trading Bot Alert
 
 ```typescript
-import { TweetStreamClient } from "tweetstream-sdk";
+import { TweetStreamClient, TweetContent, TweetMeta } from "tweetstream-sdk";
 
 const client = new TweetStreamClient({ apiKey: "your-api-key" });
 
-client.on("tweetMeta", (meta) => {
-  const tokens = meta.detected?.tokens ?? [];
-  const cex = meta.detected?.cex ?? [];
-  
-  // Alert on new token mentions
-  for (const token of tokens) {
-    if (token.chain === "solana" && token.priceUsd) {
-      console.log(`[SOLANA] ${token.symbol}: $${token.priceUsd}`);
-    }
-  }
-  
-  // Alert on CEX listings
-  for (const market of cex) {
-    console.log(`[${market.exchange.toUpperCase()}] ${market.symbol}`);
-  }
-});
-
-client.connect();
-```
-
-### Truth Social Monitor
-
-```typescript
-import { TweetStreamClient } from "tweetstream-sdk";
-
-const client = new TweetStreamClient({ apiKey: "your-api-key" });
+const recentTweets = new Map<string, TweetContent>();
 
 client.on("tweet", (tweet) => {
-  if (tweet.author.platform === "truth_social") {
-    console.log(`[Truth Social] @${tweet.author.handle}: ${tweet.text}`);
+  recentTweets.set(tweet.tweetId, tweet);
+});
+
+client.on("tweetMeta", (meta) => {
+  const tweet = recentTweets.get(meta.tweetId);
+  if (!meta.detected?.tokens?.length) return;
+
+  for (const token of meta.detected.tokens) {
+    if (token.chain === "solana") {
+      console.log(`[ALERT] @${tweet?.author.handle} mentioned ${token.symbol}`);
+      console.log(`  Contract: ${token.contract}`);
+      console.log(`  Price: $${token.priceUsd}`);
+      // Send to your trading bot...
+    }
   }
 });
 
 client.connect();
 ```
 
-### Profile Change Tracker
+### Discord Webhook Integration
 
 ```typescript
 import { TweetStreamClient } from "tweetstream-sdk";
 
 const client = new TweetStreamClient({ apiKey: "your-api-key" });
+const DISCORD_WEBHOOK = "https://discord.com/api/webhooks/...";
 
-client.on("profileUpdate", (event) => {
-  const changes: string[] = [];
-  
-  if (event.changes.name) changes.push(`name: "${event.changes.name}"`);
-  if (event.changes.bio) changes.push(`bio: "${event.changes.bio}"`);
-  if (event.changes.avatar) changes.push("avatar updated");
-  if (event.changes.handle) {
-    changes.push(`handle: @${event.previous?.handle} -> @${event.changes.handle}`);
-  }
-  
-  console.log(`@${event.actor.handle} changed: ${changes.join(", ")}`);
+client.on("tweet", async (tweet) => {
+  await fetch(DISCORD_WEBHOOK, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      content: `**@${tweet.author.handle}**: ${tweet.text}\n${tweet.link}`,
+    }),
+  });
 });
 
 client.connect();
+```
+
+### Profile Change Monitor
+
+```typescript
+client.on("profileUpdate", (event) => {
+  console.log(`@${event.actor.handle} updated their profile:`);
+  if (event.changes.name) console.log(`  Name: ${event.changes.name}`);
+  if (event.changes.bio) console.log(`  Bio: ${event.changes.bio}`);
+  if (event.changes.handle) {
+    console.log(`  Handle: @${event.previous?.handle} -> @${event.changes.handle}`);
+  }
+});
 ```
 
 ## API Reference
 
 ### TweetStreamClient
 
-#### Constructor Options
-
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `apiKey` | `string` | *required* | Your TweetStream API key |
+| `apiKey` | `string` | required | Your TweetStream API key |
 | `baseUrl` | `string` | `wss://ws.tweetstream.io/ws` | WebSocket endpoint |
 | `autoReconnect` | `boolean` | `true` | Auto-reconnect on disconnect |
 | `maxReconnectAttempts` | `number` | `Infinity` | Max reconnection attempts |
-| `reconnectDelayMs` | `number` | `1000` | Initial reconnect delay |
-| `maxReconnectDelayMs` | `number` | `30000` | Max reconnect delay |
 
-#### Events
+### Events
 
 | Event | Payload | Description |
 |-------|---------|-------------|
-| `connected` | - | Connected to WebSocket |
-| `disconnected` | `(code, reason)` | Disconnected from WebSocket |
-| `error` | `Error` | Connection or parse error |
-| `message` | `TweetStreamMessage` | Raw message envelope |
-| `tweet` | `TweetContent` | New tweet |
-| `tweetMeta` | `TweetMeta` | Tweet metadata (tokens, etc.) |
-| `tweetUpdate` | `TweetUpdate` | Tweet updated |
-| `tweetDelete` | `TweetDelete` | Tweet deleted |
+| `tweet` | `TweetContent` | New tweet received |
+| `tweetMeta` | `TweetMeta` | Token/CEX/prediction detection |
 | `profileUpdate` | `ProfileUpdateEvent` | Profile changed |
-| `follow` | `FollowEvent` | Follow event |
-| `reconnecting` | `(attempt, delayMs)` | Reconnecting |
+| `follow` | `FollowEvent` | Follow event detected |
+| `connected` | - | WebSocket connected |
+| `disconnected` | `(code, reason)` | WebSocket disconnected |
+| `reconnecting` | `(attempt, delayMs)` | Attempting reconnection |
 
 ### TweetStreamApi
 
-#### Methods
+| Method | Description |
+|--------|-------------|
+| `getHistory(query)` | Fetch historical tweets/events |
+| `addAccounts(handles)` | Add accounts to track |
+| `removeAccounts(handles)` | Remove tracked accounts |
 
-| Method | Parameters | Returns | Description |
-|--------|------------|---------|-------------|
-| `getHistory` | `HistoryQuery` | `Promise<HistoryResponse>` | Fetch historical data |
-| `addAccounts` | `string \| string[]` | `Promise<HandleResponse>` | Add accounts to track |
-| `removeAccounts` | `string \| string[]` | `Promise<HandleResponse>` | Remove tracked accounts |
+## Get Started
 
-#### HistoryQuery Options
+1. **Sign up** at [tweetstream.io](https://tweetstream.io) (7-day free trial)
+2. **Get your API key** from the dashboard
+3. **Install the SDK** and start streaming
 
-| Option | Type | Description |
-|--------|------|-------------|
-| `handles` | `string \| string[]` | Filter by handles |
-| `limit` | `number` | Max results (default: 100, max: 1000) |
-| `startDate` | `string` | ISO 8601 start date |
-| `endDate` | `string` | ISO 8601 end date |
-| `type` | `"TWEET" \| "PROFILE" \| "FOLLOW"` | Message type filter |
-
-## Types
-
-All types are exported for use in your application:
-
-```typescript
-import type {
-  TweetContent,
-  TweetMeta,
-  DetectedToken,
-  ProfileUpdateEvent,
-  FollowEvent,
-  // ... and more
-} from "tweetstream-sdk";
+```bash
+npm install tweetstream-sdk
 ```
 
 ## Links
 
-- [TweetStream](https://tweetstream.io) - Get your API key
-- [Documentation](https://tweetstream.io/docs)
-- [Python SDK](https://github.com/tenz-app/tweetstream-py-sdk)
+- [TweetStream](https://tweetstream.io) - Sign up and get your API key
+- [Documentation](https://tweetstream.io/docs) - Full API docs
+- [Python SDK](https://github.com/tenz-app/tweetstream-py-sdk) - Python version
 
 ## License
 
-MIT
+MIT - See [LICENSE](LICENSE) for details.
