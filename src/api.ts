@@ -9,7 +9,7 @@ import type {
   HandleResponse,
 } from "./types.js";
 
-const DEFAULT_API_URL = "https://api.tweetstream.io";
+const DEFAULT_API_URL = "https://tweetstream.io";
 
 export type ApiClientOptions = {
   apiKey: string;
