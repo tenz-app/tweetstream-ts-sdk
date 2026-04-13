@@ -17,7 +17,6 @@ export type MessageOperation =
   | "content"
   | "meta"
   | "update"
-  | "delete"
   | "profile_update"
   | "follow"
   | "auth_ping"
@@ -127,11 +126,6 @@ export type TweetUpdate = {
   ref?: TweetReference;
 };
 
-// Tweet delete
-export type TweetDelete = {
-  tweetId: string;
-};
-
 // Profile update event
 export type ProfileChanges = {
   name?: string;
@@ -167,7 +161,6 @@ export type AccountEvent = ProfileUpdateEvent | FollowEvent;
 export type TweetContentMessage = EnvelopeV1<TweetContent> & { t: "tweet"; op: "content" };
 export type TweetMetaMessage = EnvelopeV1<TweetMeta> & { t: "tweet"; op: "meta" };
 export type TweetUpdateMessage = EnvelopeV1<TweetUpdate> & { t: "tweet"; op: "update" };
-export type TweetDeleteMessage = EnvelopeV1<TweetDelete> & { t: "tweet"; op: "delete" };
 export type ProfileUpdateMessage = EnvelopeV1<ProfileUpdateEvent> & {
   t: "account";
   op: "profile_update";
@@ -178,7 +171,6 @@ export type TweetStreamMessage =
   | TweetContentMessage
   | TweetMetaMessage
   | TweetUpdateMessage
-  | TweetDeleteMessage
   | ProfileUpdateMessage
   | FollowMessage;
 
@@ -191,7 +183,6 @@ export type TweetStreamEvents = {
   tweet: (content: TweetContent) => void;
   tweetMeta: (meta: TweetMeta) => void;
   tweetUpdate: (update: TweetUpdate) => void;
-  tweetDelete: (data: TweetDelete) => void;
   profileUpdate: (event: ProfileUpdateEvent) => void;
   follow: (event: FollowEvent) => void;
   reconnecting: (attempt: number, delayMs: number) => void;

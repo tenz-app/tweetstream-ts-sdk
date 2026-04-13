@@ -10,7 +10,6 @@ import type {
   TweetContent,
   TweetMeta,
   TweetUpdate,
-  TweetDelete,
   ProfileUpdateEvent,
   FollowEvent,
 } from "./types.js";
@@ -54,7 +53,6 @@ export class TweetStreamClient {
     tweet: new Set(),
     tweetMeta: new Set(),
     tweetUpdate: new Set(),
-    tweetDelete: new Set(),
     profileUpdate: new Set(),
     follow: new Set(),
     reconnecting: new Set(),
@@ -200,9 +198,6 @@ export class TweetStreamClient {
           break;
         case "update":
           this.emit("tweetUpdate", message.d as TweetUpdate);
-          break;
-        case "delete":
-          this.emit("tweetDelete", message.d as TweetDelete);
           break;
         case "profile_update":
           this.emit("profileUpdate", message.d as ProfileUpdateEvent);

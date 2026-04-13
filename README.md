@@ -192,11 +192,77 @@ client.connect();
 ```typescript
 client.on("profileUpdate", (event) => {
   console.log(`@${event.actor.handle} updated their profile:`);
-  if (event.changes.name) console.log(`  Name: ${event.changes.name}`);
-  if (event.changes.bio) console.log(`  Bio: ${event.changes.bio}`);
-  if (event.changes.handle) {
-    console.log(`  Handle: @${event.previous?.handle} -> @${event.changes.handle}`);
+  if (event.changes.name) {
+    console.log(`  Name: ${event.previous?.name} -> ${event.changes.name}`);
   }
+  if (event.changes.bio) {
+    console.log(`  Bio: ${event.changes.bio}`);
+  }
+  if (event.changes.avatar) {
+    console.log(`  New avatar: ${event.changes.avatar}`);
+  }
+  if (event.changes.handle) {
+    console.log(`  Handle changed: @${event.previous?.handle} -> @${event.changes.handle}`);
+  }
+});
+```
+
+### Follow Event Monitor
+
+```typescript
+client.on("follow", (event) => {
+  console.log(
+    `@${event.actor.handle} followed @${event.target.handle}`
+  );
+  console.log(`  ${event.actor.name} (${event.actor.followersCount} followers)`);
+  console.log(`  Now following: ${event.target.name}`);
+});
+```
+
+### Tweet Edit Tracking
+
+```typescript
+client.on("tweetUpdate", (update) => {
+  console.log(`Tweet ${update.tweetId} was edited:`);
+  if (update.text) {
+    console.log(`  New text: ${update.text}`);
+  }
+  if (update.media?.length) {
+    console.log(`  Media updated: ${update.media.length} items`);
+  }
+});
+```
+
+### Handling Quotes, Replies, and Retweets
+
+```typescript
+client.on("tweet", (tweet) => {
+  if (tweet.ref) {
+    switch (tweet.ref.type) {
+      case "reply":
+        console.log(`@${tweet.author.handle} replied to @${tweet.ref.author?.handle}:`);
+        console.log(`  Original: ${tweet.ref.text}`);
+        console.log(`  Reply: ${tweet.text}`);
+        break;
+      case "quote":
+        console.log(`@${tweet.author.handle} quoted @${tweet.ref.author?.handle}:`);
+        console.log(`  Quoted: ${tweet.ref.text}`);
+        console.log(`  Comment: ${tweet.text}`);
+        break;
+      case "retweet":
+        console.log(`@${tweet.author.handle} retweeted @${tweet.ref.author?.handle}`);
+        break;
+    }
+  }
+});
+```
+
+### Multi-Platform Streaming (Twitter + Truth Social)
+
+```typescript
+client.on("tweet", (tweet) => {
+  const platform = tweet.author.platform === "truth_social" ? "Truth Social" : "Twitter/X";
+  console.log(`[${platform}] @${tweet.author.handle}: ${tweet.text}`);
 });
 ```
 
@@ -215,13 +281,15 @@ client.on("profileUpdate", (event) => {
 
 | Event | Payload | Description |
 |-------|---------|-------------|
-| `tweet` | `TweetContent` | New tweet received |
-| `tweetMeta` | `TweetMeta` | Token/CEX/prediction detection |
-| `profileUpdate` | `ProfileUpdateEvent` | Profile changed |
-| `follow` | `FollowEvent` | Follow event detected |
+| `tweet` | `TweetContent` | New tweet (includes replies, quotes, retweets) |
+| `tweetMeta` | `TweetMeta` | Token/CEX/prediction market detection, OCR |
+| `tweetUpdate` | `TweetUpdate` | Tweet was edited |
+| `profileUpdate` | `ProfileUpdateEvent` | Profile name/bio/avatar changed |
+| `follow` | `FollowEvent` | Account followed another account |
 | `connected` | - | WebSocket connected |
 | `disconnected` | `(code, reason)` | WebSocket disconnected |
 | `reconnecting` | `(attempt, delayMs)` | Attempting reconnection |
+| `message` | `TweetStreamMessage` | Raw envelope (for advanced use) |
 
 ### TweetStreamApi
 
