@@ -219,16 +219,18 @@ client.on("follow", (event) => {
 });
 ```
 
-### Tweet Edit Tracking
+### Tweet Enrichment Updates
 
 ```typescript
+// Fired when additional data becomes available for a tweet
+// (e.g., thread context, media URLs, reference details)
 client.on("tweetUpdate", (update) => {
-  console.log(`Tweet ${update.tweetId} was edited:`);
-  if (update.text) {
-    console.log(`  New text: ${update.text}`);
+  console.log(`Tweet ${update.tweetId} enriched with new data:`);
+  if (update.ref) {
+    console.log(`  Thread context: ${update.ref.type} to ${update.ref.tweetId}`);
   }
   if (update.media?.length) {
-    console.log(`  Media updated: ${update.media.length} items`);
+    console.log(`  Media resolved: ${update.media.length} items`);
   }
 });
 ```
@@ -283,7 +285,7 @@ client.on("tweet", (tweet) => {
 |-------|---------|-------------|
 | `tweet` | `TweetContent` | New tweet (includes replies, quotes, retweets) |
 | `tweetMeta` | `TweetMeta` | Token/CEX/prediction market detection, OCR |
-| `tweetUpdate` | `TweetUpdate` | Tweet was edited |
+| `tweetUpdate` | `TweetUpdate` | Additional tweet data available (enrichment) |
 | `profileUpdate` | `ProfileUpdateEvent` | Profile name/bio/avatar changed |
 | `follow` | `FollowEvent` | Account followed another account |
 | `connected` | - | WebSocket connected |
