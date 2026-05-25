@@ -17,6 +17,7 @@ export type MessageOperation =
   | "content"
   | "meta"
   | "update"
+  | "delete"
   | "profile_update"
   | "follow"
   | "auth_ping"
@@ -32,26 +33,53 @@ export type Media = {
   thumbnail?: string;
 };
 
+export type TweetUrl = {
+  url: string;
+  name?: string;
+  tco?: string;
+};
+
+export type TweetMention = {
+  handle?: string;
+  id?: string;
+  name?: string;
+};
+
 // Author types
 export type Platform = "twitter" | "truth_social";
+export type VerifiedType = "blue" | "business" | "government" | "none";
+
+export type TweetAuthorMetrics = {
+  likes?: number;
+  tweets?: number;
+};
+
+export type TweetVerifiedLabel = {
+  badge: string | null;
+  description: string;
+  url: string | null;
+};
 
 export type TweetAuthor = {
-  id?: string;
+  banner?: string;
+  bio?: string;
+  followersCount?: number;
+  followingCount?: number;
   handle?: string;
+  id?: string;
+  joinedAt?: number;
+  location?: string;
+  metrics?: TweetAuthorMetrics;
   name?: string;
-  profileImage?: string;
   platform?: Platform;
+  profileImage?: string;
+  url?: string;
+  verifiedLabel?: TweetVerifiedLabel;
+  verifiedType?: VerifiedType;
 };
 
 export type AccountActor = TweetAuthor & {
-  bio?: string;
-  banner?: string;
-  location?: string;
-  url?: string;
   websiteUrl?: string;
-  followersCount?: number;
-  followingCount?: number;
-  verifiedType?: string;
 };
 
 // Reference types (quotes, replies, retweets)
@@ -73,7 +101,9 @@ export type TweetContent = {
   author: TweetAuthor;
   link?: string;
   media?: Media[];
+  mentions?: TweetMention[];
   ref?: TweetReference;
+  urls?: TweetUrl[];
 };
 
 // Tweet metadata - detected entities
@@ -121,9 +151,16 @@ export type TweetMeta = {
 // Tweet update (partial)
 export type TweetUpdate = {
   tweetId: string;
+  author?: TweetAuthor;
   text?: string;
   media?: Media[];
+  mentions?: TweetMention[];
   ref?: TweetReference;
+  urls?: TweetUrl[];
+};
+
+export type TweetDelete = {
+  tweetId: string;
 };
 
 // Profile update event
@@ -157,22 +194,47 @@ export type FollowEvent = {
 // Account event union
 export type AccountEvent = ProfileUpdateEvent | FollowEvent;
 
+// Control messages
+export type TwitterHandlesResult = {
+  action: "follow" | "unfollow";
+  requestId: string | null;
+  error: string | null;
+  results: HandleOperationResult[];
+};
+
 // Message types
 export type TweetContentMessage = EnvelopeV1<TweetContent> & { t: "tweet"; op: "content" };
 export type TweetMetaMessage = EnvelopeV1<TweetMeta> & { t: "tweet"; op: "meta" };
 export type TweetUpdateMessage = EnvelopeV1<TweetUpdate> & { t: "tweet"; op: "update" };
+export type TweetDeleteMessage = EnvelopeV1<TweetDelete> & { t: "tweet"; op: "delete" };
 export type ProfileUpdateMessage = EnvelopeV1<ProfileUpdateEvent> & {
   t: "account";
   op: "profile_update";
 };
 export type FollowMessage = EnvelopeV1<FollowEvent> & { t: "account"; op: "follow" };
+export type TwitterHandlesResultMessage = EnvelopeV1<TwitterHandlesResult> & {
+  t: "control";
+  op: "twitter_handles_result";
+};
+export type AuthPingMessage = EnvelopeV1<Record<string, unknown>> & {
+  t: "control";
+  op: "auth_ping";
+};
+export type AuthPongMessage = EnvelopeV1<Record<string, unknown>> & {
+  t: "control";
+  op: "auth_pong";
+};
 
 export type TweetStreamMessage =
   | TweetContentMessage
   | TweetMetaMessage
   | TweetUpdateMessage
+  | TweetDeleteMessage
   | ProfileUpdateMessage
-  | FollowMessage;
+  | FollowMessage
+  | TwitterHandlesResultMessage
+  | AuthPingMessage
+  | AuthPongMessage;
 
 // Client events
 export type TweetStreamEvents = {
@@ -183,8 +245,10 @@ export type TweetStreamEvents = {
   tweet: (content: TweetContent) => void;
   tweetMeta: (meta: TweetMeta) => void;
   tweetUpdate: (update: TweetUpdate) => void;
+  tweetDelete: (deleted: TweetDelete) => void;
   profileUpdate: (event: ProfileUpdateEvent) => void;
   follow: (event: FollowEvent) => void;
+  twitterHandlesResult: (result: TwitterHandlesResult) => void;
   reconnecting: (attempt: number, delayMs: number) => void;
 };
 

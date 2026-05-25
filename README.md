@@ -82,8 +82,9 @@ await api.removeAccounts("old_account");
 ### Real-time WebSocket Streaming
 
 - **Tweet content** - Full tweet with author, media, timestamps
+- **Entities** - Expanded URLs and mentions when available
 - **Quotes, replies, retweets** - Complete reference chain
-- **Truth Social** - Stream from both Twitter/X and Truth Social
+- **Truth Social** - Optional Trump Truth Social posts use the same content shape with `author.platform === "truth_social"`
 - **Profile updates** - Name, bio, avatar changes
 - **Follow notifications** - Know when tracked accounts follow others
 - **Auto-reconnect** - Built-in exponential backoff
@@ -231,11 +232,17 @@ client.on("follow", (event) => {
 // (e.g., thread context, media URLs, reference details)
 client.on("tweetUpdate", (update) => {
   console.log(`Tweet ${update.tweetId} enriched with new data:`);
+  if (update.author?.platform === "truth_social") {
+    console.log("  Truth Social post update");
+  }
   if (update.ref) {
     console.log(`  Thread context: ${update.ref.type} to ${update.ref.tweetId}`);
   }
   if (update.media?.length) {
     console.log(`  Media resolved: ${update.media.length} items`);
+  }
+  if (update.urls?.length) {
+    console.log(`  URLs resolved: ${update.urls.map((url) => url.url).join(", ")}`);
   }
 });
 ```
@@ -270,6 +277,9 @@ client.on("tweet", (tweet) => {
 client.on("tweet", (tweet) => {
   const platform = tweet.author.platform === "truth_social" ? "Truth Social" : "Twitter/X";
   console.log(`[${platform}] @${tweet.author.handle}: ${tweet.text}`);
+  if (tweet.author.platform === "truth_social") {
+    console.log("Route optional Trump Truth Social posts separately here.");
+  }
 });
 ```
 
@@ -291,14 +301,18 @@ client.on("tweet", (tweet) => {
 | `tweet` | `TweetContent` | New tweet (includes replies, quotes, retweets) |
 | `tweetMeta` | `TweetMeta` | Token/CEX/prediction market detection, OCR |
 | `tweetUpdate` | `TweetUpdate` | Additional tweet data available (enrichment) |
+| `tweetDelete` | `TweetDelete` | Tweet deletion signal when provided by an upstream |
 | `profileUpdate` | `ProfileUpdateEvent` | Profile name/bio/avatar changed |
 | `follow` | `FollowEvent` | Account followed another account |
+| `twitterHandlesResult` | `TwitterHandlesResult` | WebSocket handle-management result |
 | `connected` | - | WebSocket connected |
 | `disconnected` | `(code, reason)` | WebSocket disconnected |
 | `reconnecting` | `(attempt, delayMs)` | Attempting reconnection |
 | `message` | `TweetStreamMessage` | Raw envelope (for advanced use) |
 
 ### TweetStreamApi
+
+REST requests default to `https://api.tweetstream.io` and use `Authorization: Bearer <API_KEY>`.
 
 | Method | Description |
 |--------|-------------|

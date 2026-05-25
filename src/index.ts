@@ -30,10 +30,15 @@ export type {
   // Media
   Media,
   MediaType,
+  TweetMention,
+  TweetUrl,
 
   // Authors
   Platform,
+  VerifiedType,
   TweetAuthor,
+  TweetAuthorMetrics,
+  TweetVerifiedLabel,
   AccountActor,
 
   // References
@@ -42,6 +47,7 @@ export type {
 
   // Tweet types
   TweetContent,
+  TweetDelete,
   TweetMeta,
   TweetUpdate,
   MetaSource,
@@ -59,8 +65,13 @@ export type {
   TweetContentMessage,
   TweetMetaMessage,
   TweetUpdateMessage,
+  TweetDeleteMessage,
   ProfileUpdateMessage,
   FollowMessage,
+  TwitterHandlesResult,
+  TwitterHandlesResultMessage,
+  AuthPingMessage,
+  AuthPongMessage,
   TweetStreamMessage,
 
   // Client

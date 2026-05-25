@@ -5,7 +5,7 @@
 
 import type { HistoryQuery, HistoryResponse, HandleResponse } from "./types.js";
 
-const DEFAULT_API_URL = "https://tweetstream.io";
+const DEFAULT_API_URL = "https://api.tweetstream.io";
 
 export type ApiClientOptions = {
   apiKey: string;
@@ -76,7 +76,7 @@ export class TweetStreamApi {
       throw new TweetStreamApiError(error.message, response.status, error.details);
     }
 
-    return response.json();
+    return (await response.json()) as HistoryResponse;
   }
 
   /**
@@ -107,7 +107,7 @@ export class TweetStreamApi {
       throw new TweetStreamApiError(error.message, response.status, error.details);
     }
 
-    return response.json();
+    return (await response.json()) as HandleResponse;
   }
 
   /**
@@ -138,7 +138,7 @@ export class TweetStreamApi {
       throw new TweetStreamApiError(error.message, response.status, error.details);
     }
 
-    return response.json();
+    return (await response.json()) as HandleResponse;
   }
 
   private async parseError(response: Response): Promise<{ message: string; details?: unknown }> {

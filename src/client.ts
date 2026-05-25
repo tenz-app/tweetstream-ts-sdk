@@ -10,8 +10,10 @@ import type {
   TweetContent,
   TweetMeta,
   TweetUpdate,
+  TweetDelete,
   ProfileUpdateEvent,
   FollowEvent,
+  TwitterHandlesResult,
 } from "./types.js";
 
 const DEFAULT_WS_URL = "wss://ws.tweetstream.io/ws";
@@ -33,11 +35,19 @@ const IMMEDIATE_RECONNECT_CODES = new Set([
   1012, // Server shutting down
 ]);
 
+const NO_RECONNECT_HTTP_STATUSES = new Set([400, 401, 403, 429]);
+
 type WebSocketConstructor = {
   new (url: string | URL, protocols?: string | string[]): WebSocket;
 };
 
+type WebSocketErrorEvent = Event & {
+  error?: unknown;
+  message?: string;
+};
+
 type EventCallback<K extends keyof TweetStreamEvents> = TweetStreamEvents[K];
+type UntypedEventCallback = (...args: unknown[]) => void;
 type EventListeners = {
   [K in keyof TweetStreamEvents]: Set<EventCallback<K>>;
 };
@@ -58,8 +68,10 @@ export class TweetStreamClient {
     tweet: new Set(),
     tweetMeta: new Set(),
     tweetUpdate: new Set(),
+    tweetDelete: new Set(),
     profileUpdate: new Set(),
     follow: new Set(),
+    twitterHandlesResult: new Set(),
     reconnecting: new Set(),
   };
 
@@ -117,7 +129,7 @@ export class TweetStreamClient {
    * Add an event listener
    */
   on<K extends keyof TweetStreamEvents>(event: K, callback: EventCallback<K>): this {
-    this.listeners[event].add(callback as any);
+    this.listenerSet(event).add(callback);
     return this;
   }
 
@@ -125,7 +137,7 @@ export class TweetStreamClient {
    * Remove an event listener
    */
   off<K extends keyof TweetStreamEvents>(event: K, callback: EventCallback<K>): this {
-    this.listeners[event].delete(callback as any);
+    this.listenerSet(event).delete(callback);
     return this;
   }
 
@@ -133,20 +145,24 @@ export class TweetStreamClient {
    * Add a one-time event listener
    */
   once<K extends keyof TweetStreamEvents>(event: K, callback: EventCallback<K>): this {
-    const wrapper = ((...args: any[]) => {
+    const wrapper = ((...args: unknown[]) => {
       this.off(event, wrapper as EventCallback<K>);
-      (callback as any)(...args);
+      (callback as UntypedEventCallback)(...args);
     }) as EventCallback<K>;
     return this.on(event, wrapper);
+  }
+
+  private listenerSet<K extends keyof TweetStreamEvents>(event: K): Set<EventCallback<K>> {
+    return this.listeners[event];
   }
 
   private emit<K extends keyof TweetStreamEvents>(
     event: K,
     ...args: Parameters<TweetStreamEvents[K]>
   ): void {
-    for (const callback of this.listeners[event]) {
+    for (const callback of this.listenerSet(event)) {
       try {
-        (callback as any)(...args);
+        (callback as UntypedEventCallback)(...args);
       } catch (error) {
         console.error(`Error in ${event} listener:`, error);
       }
@@ -182,9 +198,13 @@ export class TweetStreamClient {
         this.handleReconnect(event.code);
       });
 
-      ws.addEventListener("error", () => {
+      ws.addEventListener("error", (event) => {
         this.isConnecting = false;
-        this.emit("error", new Error("WebSocket connection error"));
+        const error = this.toWebSocketError(event as WebSocketErrorEvent);
+        if (this.isNonReconnectableHandshakeError(error)) {
+          this.shouldReconnect = false;
+        }
+        this.emit("error", error);
       });
 
       ws.addEventListener("message", (event) => {
@@ -233,16 +253,45 @@ export class TweetStreamClient {
         case "update":
           this.emit("tweetUpdate", message.d as TweetUpdate);
           break;
+        case "delete":
+          this.emit("tweetDelete", message.d as TweetDelete);
+          break;
         case "profile_update":
           this.emit("profileUpdate", message.d as ProfileUpdateEvent);
           break;
         case "follow":
           this.emit("follow", message.d as FollowEvent);
           break;
+        case "twitter_handles_result":
+          this.emit("twitterHandlesResult", message.d as TwitterHandlesResult);
+          break;
       }
     } catch (error) {
       this.emit("error", new Error(`Failed to parse message: ${error}`));
     }
+  }
+
+  private toWebSocketError(event: WebSocketErrorEvent): Error {
+    if (event.error instanceof Error) {
+      return event.error;
+    }
+    if (typeof event.message === "string" && event.message.length > 0) {
+      return new Error(event.message);
+    }
+    if (typeof event.error === "string" && event.error.length > 0) {
+      return new Error(event.error);
+    }
+    return new Error("WebSocket connection error");
+  }
+
+  private isNonReconnectableHandshakeError(error: Error): boolean {
+    const match = error.message.match(/(?:Unexpected server response:|HTTP\s+)(\d{3})/i);
+    if (!match) {
+      return false;
+    }
+
+    const status = Number(match[1]);
+    return NO_RECONNECT_HTTP_STATUSES.has(status);
   }
 
   private handleReconnect(closeCode: number): void {
